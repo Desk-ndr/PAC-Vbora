@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light dark}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>PAC Pedevita</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: una colonna, pannello input in alto, riepilogo a tessere, tabella per anno. Ledger contabile, niente decorazioni. */
+:root{
+  --bg:#f6f5f1; --panel:#ffffff; --fg:#1b1f24; --muted:#5c6470; --line:#dcd9d1;
+  --accent:#0a4d8c; --accent-soft:#e3ecf6; --pos:#1c7a45; --neg:#b3261e;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15181d; --panel:#1e2229; --fg:#e8e9eb; --muted:#9aa3ae; --line:#333a44;
+  --accent:#6aa9e6; --accent-soft:#1f3349; --pos:#5fc98a; --neg:#f08a84; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15181d; --panel:#1e2229; --fg:#e8e9eb; --muted:#9aa3ae; --line:#333a44;
+  --accent:#6aa9e6; --accent-soft:#1f3349; --pos:#5fc98a; --neg:#f08a84; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45;padding-block:28px;padding-inline:16px}
+main{max-width:1000px;margin:0 auto;display:grid;gap:22px}
+h1{font-size:24px;font-weight:600;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;max-width:65ch}
+h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
+label b{color:var(--fg);font-weight:500}
+.in{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:0 10px;min-width:0}
+.in span{color:var(--muted);font-size:13px}
+input[type=number]{width:100%;min-width:0;border:0;background:transparent;color:var(--fg);font:500 16px var(--mono);padding:8px 6px;outline:none}
+input[type=number]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+details{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+summary{cursor:pointer;color:var(--accent);font-weight:500;font-size:14px}
+.tiles{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.tile .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tile .v{font:500 24px/1.2 var(--mono);margin-top:6px;font-variant-numeric:tabular-nums}
+.tile .n{font-size:12px;color:var(--muted);margin-top:4px}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.tile.main{border-color:var(--accent);background:var(--accent-soft)}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:14px}
+th,td{padding:8px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-weight:500;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;background:var(--panel)}
+td:first-child,th:first-child{text-align:left}
+td{font-family:var(--mono)}
+tr.be td{background:var(--accent-soft)}
+.note{font-size:13px;color:var(--muted);max-width:75ch}
+.note ul{margin:6px 0 0;padding-left:18px}
+.note li{margin:3px 0}
+</style>
+
+</head>
+<body>
+<main>
+<header>
+  <h1>PAC Pedevita</h1>
+  <p class="sub">Simulazione di un piano di accumulo in ETF intestato alla SRL su conto Directa Azienda. Cambia i valori: tessere e tabella si ricalcolano.</p>
+</header>
+
+<section class="panel">
+  <h2>Parametri</h2>
+  <div class="grid">
+    <label><b>Versamento iniziale</b><div class="in"><input type="number" id="init" value="5000" min="0" step="500"><span>€</span></div></label>
+    <label><b>Versamento mensile</b><div class="in"><input type="number" id="monthly" value="200" min="0" step="50"><span>€</span></div></label>
+    <label><b>Rendimento medio annuo</b><div class="in"><input type="number" id="ret" value="4" step="0.5"><span>%</span></div></label>
+    <label><b>Anni</b><div class="in"><input type="number" id="years" value="10" min="1" max="30" step="1"><span>anni</span></div></label>
+  </div>
+  <details>
+    <summary>Costi Directa e fisco (preimpostati)</summary>
+    <div class="grid" style="margin-top:12px">
+      <label><b>Commissione d'ingresso</b><div class="in"><input type="number" id="open" value="500" min="0" step="50"><span>€</span></div></label>
+      <label><b>LEI primo anno</b><div class="in"><input type="number" id="lei1" value="69" min="0" step="1"><span>€</span></div></label>
+      <label><b>LEI rinnovo annuo</b><div class="in"><input type="number" id="leir" value="65" min="0" step="1"><span>€</span></div></label>
+      <label><b>Bollo su titoli</b><div class="in"><input type="number" id="bollo" value="0.2" min="0" step="0.05"><span>%/anno</span></div></label>
+      <label><b>Commissione vendita finale</b><div class="in"><input type="number" id="sell" value="5" min="0" step="1"><span>€</span></div></label>
+      <label><b>IRES</b><div class="in"><input type="number" id="ires" value="24" min="0" step="1"><span>%</span></div></label>
+    </div>
+  </details>
+</section>
+
+<section>
+  <h2>Se vendete tutto a fine periodo</h2>
+  <div class="tiles" id="tiles"></div>
+</section>
+
+<section class="panel">
+  <h2>Anno per anno</h2>
+  <div class="wrap">
+    <table id="tbl">
+      <thead><tr>
+        <th>Anno</th><th>Versato</th><th>Valore ETF</th><th>Bollo dell'anno</th><th>Ingresso + LEI dell'anno</th><th>Guadagno lordo</th><th>Ritenuta 26%</th><th>IRES dovuta</th><th>Netto in tasca</th><th>Risultato</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="note">
+  <h2>Come calcola</h2>
+  <ul>
+    <li>Rendimento composto mensilmente, versamento mensile a inizio mese, PAC Directa a 0 € di commissione.</li>
+    <li>Bollo dello 0,2% sul valore dei titoli a fine anno, già tolto dal valore ETF. Ingresso e LEI sono pagati dalla cassa della società (IVA esclusa, recuperabile).</li>
+    <li>Fisco SRL: alla vendita Directa trattiene il 26% del guadagno come acconto; l'imposta definitiva è l'IRES sul guadagno, l'eccedenza torna come credito. Ingresso e LEI sono costi deducibili: il netto include il 24% risparmiato su di essi.</li>
+    <li>Le colonne dei costi mostrano la spesa del singolo anno. "Netto in tasca" = valore ETF − IRES − commissione di vendita − tutti gli ingressi e LEI pagati fino a quell'anno + risparmio IRES sui costi. "Risultato" = netto in tasca − versato.</li>
+    <li>Il rendimento è una media ipotetica: gli anni veri oscillano e una vendita in un anno negativo può dare un risultato sotto zero anche dopo molti anni. Non è una consulenza finanziaria.</li>
+  </ul>
+</section>
+</main>
+
+<script>
+(function(){
+  var ids=['init','monthly','ret','years','open','lei1','leir','bollo','sell','ires'];
+  var el={}; ids.forEach(function(i){el[i]=document.getElementById(i)});
+  var fmt=new Intl.NumberFormat('it-IT',{maximumFractionDigits:0});
+  function eur(n){return fmt.format(Math.round(n))+' €'}
+  function sgn(n){return (n>0?'+':'')+eur(n)}
+  function num(id,def){var v=parseFloat(el[id].value);return isNaN(v)?def:v}
+
+  function simulate(p){
+    var mr=Math.pow(1+p.ret,1/12)-1, bal=p.init, bolCum=0, rows=[];
+    for(var y=1;y<=p.years;y++){
+      for(var m=0;m<12;m++){bal*=1+mr;bal+=p.monthly}
+      var b=bal*p.bollo; bal-=b; bolCum+=b; var fixY=(y===1?p.open+p.lei1:p.leir);
+      var vers=p.init+p.monthly*12*y;
+      var fix=p.open+p.lei1+p.leir*(y-1);
+      var gain=bal-vers;
+      var rit=Math.max(gain,0)*0.26, ires=Math.max(gain,0)*p.ires;
+      var net=bal-ires-p.sell-fix+fix*p.ires;
+      rows.push({y:y,vers:vers,val:bal,bol:b,bolCum:bolCum,fix:fix,fixY:fixY,gain:gain,rit:rit,ires:ires,net:net,res:net-vers});
+    }
+    return rows;
+  }
+
+  function render(){
+    var p={init:num('init',0),monthly:num('monthly',0),ret:num('ret',0)/100,years:Math.max(1,Math.min(30,Math.round(num('years',10)))),
+      open:num('open',0),lei1:num('lei1',0),leir:num('leir',0),bollo:num('bollo',0)/100,sell:num('sell',0),ires:num('ires',0)/100};
+    var rows=simulate(p), last=rows[rows.length-1];
+    var be=null; for(var i=0;i<rows.length;i++){if(rows[i].res>0){be=rows[i].y;break}}
+    var costs=last.fix+last.bolCum+p.sell;
+    var tiles=[
+      {k:'Versato in '+p.years+' anni',v:eur(last.vers)},
+      {k:'Netto in tasca',v:eur(last.net),main:true,n:'dopo IRES e costi'},
+      {k:'Risultato',v:sgn(last.res),cls:last.res>=0?'pos':'neg',n:'netto in tasca meno versato'},
+      {k:'Costi Directa in '+p.years+' anni',v:eur(costs),n:'ingresso, LEI, bollo, vendita'},
+      {k:'IRES sul guadagno',v:eur(last.ires),n:'trattenuto 26%: '+eur(last.rit)+', credito '+eur(last.rit-last.ires)},
+      {k:'Pareggio',v:be?'anno '+be:'mai',n:be?'primo anno con risultato positivo':'entro '+p.years+' anni'}
+    ];
+    document.getElementById('tiles').innerHTML=tiles.map(function(t){
+      return '<div class="tile'+(t.main?' main':'')+'"><div class="k">'+t.k+'</div><div class="v '+(t.cls||'')+'">'+t.v+'</div>'+(t.n?'<div class="n">'+t.n+'</div>':'')+'</div>'}).join('');
+    document.querySelector('#tbl tbody').innerHTML=rows.map(function(r){
+      return '<tr'+(r.y===be?' class="be"':'')+'><td>'+r.y+'</td><td>'+eur(r.vers)+'</td><td>'+eur(r.val)+'</td><td class="neg">−'+eur(r.bol)+'</td><td class="neg">−'+eur(r.fixY)+'</td><td>'+eur(r.gain)+'</td><td class="neg">−'+eur(r.rit)+'</td><td class="neg">−'+eur(r.ires)+'</td><td>'+eur(r.net)+'</td><td class="'+(r.res>=0?'pos':'neg')+'">'+sgn(r.res)+'</td></tr>'}).join('');
+  }
+  ids.forEach(function(i){el[i].addEventListener('input',render)});
+  render();
+})();
+</script>
+
+</body>
+</html>
